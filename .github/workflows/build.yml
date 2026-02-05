@@ -1,0 +1,51 @@
+name: Build macOS Screensaver
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build universal binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd SpaceInvadersScreensaver_Package/SpaceInvadersScreensaver.saver
+
+          mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
+
+          # Compilar x86_64
+          swiftc -target x86_64-apple-macosx13.0 \
+            -framework Cocoa -framework ScreenSaver -framework WebKit \
+            -emit-library \
+            -o SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver_x86_64 \
+            SpaceInvadersScreensaver.swift
+
+          # Compilar arm64
+          swiftc -target arm64-apple-macosx13.0 \
+            -framework Cocoa -framework ScreenSaver -framework WebKit \
+            -emit-library \
+            -o SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver_arm64 \
+            SpaceInvadersScreensaver.swift
+
+          # Unir en un solo binario universal
+          lipo -create \
+            SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver_x86_64 \
+            SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver_arm64 \
+            -output SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
+
+          rm -f SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver_x86_64 \
+                SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver_arm64
+
+          echo "✅ Built:"
+          file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceInvadersScreensaver
+          path: SpaceInvadersScreensaver_Package/SpaceInvadersScreensaver.saver/SpaceInvadersScreensaver.saver
