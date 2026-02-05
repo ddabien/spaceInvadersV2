@@ -21,25 +21,17 @@ jobs:
           echo "== Repo root =="
           ls -la
 
-          # Validar archivo fuente
           test -f SpaceInvadersScreensaver.swift
 
-          # Crear estructura del bundle
           mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
           mkdir -p SpaceInvadersScreensaver.saver/Contents/Resources
 
           # Copiar recursos web (si existen)
-          if [[ -f index.html ]]; then
-            cp -v index.html SpaceInvadersScreensaver.saver/Contents/Resources/
-          fi
-          if [[ -f main.js ]]; then
-            cp -v main.js SpaceInvadersScreensaver.saver/Contents/Resources/
-          fi
-          if [[ -d assets ]]; then
-            cp -Rv assets SpaceInvadersScreensaver.saver/Contents/Resources/
-          fi
+          [[ -f index.html ]] && cp -v index.html SpaceInvadersScreensaver.saver/Contents/Resources/
+          [[ -f main.js ]] && cp -v main.js SpaceInvadersScreensaver.saver/Contents/Resources/
+          [[ -d assets ]] && cp -Rv assets SpaceInvadersScreensaver.saver/Contents/Resources/
 
-          # Info.plist mínimo
+          # Info.plist (IMPORTANTE: CFBundleExecutable)
           cat > SpaceInvadersScreensaver.saver/Contents/Info.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -51,6 +43,8 @@ jobs:
               <string>Space Invaders</string>
               <key>CFBundlePackageType</key>
               <string>BNDL</string>
+              <key>CFBundleExecutable</key>
+              <string>SpaceInvadersScreensaver</string>
               <key>CFBundleVersion</key>
               <string>1.0</string>
               <key>CFBundleShortVersionString</key>
@@ -61,7 +55,10 @@ jobs:
           </plist>
           EOF
 
-          # Compilar universal (Intel + Apple Silicon)
+          # Target para Ventura (y compatibilidad hacia abajo si querés bajarlo a 12.0)
+          export MACOSX_DEPLOYMENT_TARGET=13.0
+
+          # Compilar como BUNDLE (plugin), no como dylib
           swiftc \
             -target x86_64-apple-macosx13.0 \
             -target arm64-apple-macosx13.0 \
@@ -69,16 +66,13 @@ jobs:
             -framework ScreenSaver \
             -framework WebKit \
             -emit-library \
+            -Xlinker -bundle \
             -o SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver \
             SpaceInvadersScreensaver.swift
 
-          echo "✅ Built binary:"
+          echo "✅ Binary type:"
           file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
 
-          echo "✅ Resources:"
-          ls -la SpaceInvadersScreensaver.saver/Contents/Resources || true
-
-          # Zip final
           rm -f SpaceInvadersScreensaver.saver.zip
           zip -r SpaceInvadersScreensaver.saver.zip SpaceInvadersScreensaver.saver
 
@@ -87,5 +81,3 @@ jobs:
         with:
           name: SpaceInvadersScreensaver
           path: SpaceInvadersScreensaver.saver.zip
-
-          
