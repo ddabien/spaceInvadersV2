@@ -1,89 +1,36 @@
-name: Build macOS Screensaver
+import ScreenSaver
+import WebKit
 
-on:
-  workflow_dispatch:
-  push:
-    branches: ["main"]
+final class SpaceInvadersScreensaver: ScreenSaverView {
 
-jobs:
-  build:
-    runs-on: macos-latest
+    private var webView: WKWebView!
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    override init?(frame: NSRect, isPreview: Bool) {
+        super.init(frame: frame, isPreview: isPreview)
 
-      - name: Build .saver bundle
-        shell: bash
-        run: |
-          set -euo pipefail
+        let config = WKWebViewConfiguration()
+        webView = WKWebView(frame: self.bounds, configuration: config)
+        webView.autoresizingMask = [.width, .height]
+        addSubview(webView)
 
-          echo "== Repo root =="
-          ls -la
+        // Cargar el HTML local
+        let bundle = Bundle(for: type(of: self))
+        if let htmlPath = bundle.path(forResource: "index", ofType: "html") {
+            let htmlURL = URL(fileURLWithPath: htmlPath)
+            // Permitir que cargue recursos relativos (main.js, assets, etc.)
+            webView.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
+        } else {
+            NSLog("SpaceInvadersScreensaver: No se encontró index.html en el bundle")
+        }
 
-          # Validar archivo fuente
-          test -f SpaceInvadersScreensaver.swift
+        animationTimeInterval = 1.0 / 30.0
+    }
 
-          # Crear estructura del bundle
-          mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
-          mkdir -p SpaceInvadersScreensaver.saver/Contents/Resources
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
 
-          # Copiar recursos web (si existen)
-          if [[ -f index.html ]]; then
-            cp -v index.html SpaceInvadersScreensaver.saver/Contents/Resources/
-          fi
-          if [[ -f main.js ]]; then
-            cp -v main.js SpaceInvadersScreensaver.saver/Contents/Resources/
-          fi
-          if [[ -d assets ]]; then
-            cp -Rv assets SpaceInvadersScreensaver.saver/Contents/Resources/
-          fi
-
-          # Info.plist mínimo
-          cat > SpaceInvadersScreensaver.saver/Contents/Info.plist << 'EOF'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleIdentifier</key>
-              <string>com.example.spaceinvaders</string>
-              <key>CFBundleName</key>
-              <string>Space Invaders</string>
-              <key>CFBundlePackageType</key>
-              <string>BNDL</string>
-              <key>CFBundleVersion</key>
-              <string>1.0</string>
-              <key>CFBundleShortVersionString</key>
-              <string>1.0</string>
-              <key>NSPrincipalClass</key>
-              <string>SpaceInvadersScreensaver</string>
-          </dict>
-          </plist>
-          EOF
-
-          # Compilar universal (Intel + Apple Silicon)
-          swiftc \
-            -target x86_64-apple-macosx13.0 \
-            -target arm64-apple-macosx13.0 \
-            -framework Cocoa \
-            -framework ScreenSaver \
-            -framework WebKit \
-            -emit-library \
-            -o SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver \
-            SpaceInvadersScreensaver.swift
-
-          echo "✅ Built binary:"
-          file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
-
-          echo "✅ Resources:"
-          ls -la SpaceInvadersScreensaver.saver/Contents/Resources || true
-
-          # Zip final
-          rm -f SpaceInvadersScreensaver.saver.zip
-          zip -r SpaceInvadersScreensaver.saver.zip SpaceInvadersScreensaver.saver
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SpaceInvadersScreensaver
-          path: SpaceInvadersScreensaver.saver.zip
+    override func animateOneFrame() {
+        // No hace falta render manual: el JS anima en el WebView.
+    }
+}
