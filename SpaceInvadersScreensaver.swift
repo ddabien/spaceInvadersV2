@@ -1,43 +1,36 @@
-import Cocoa
 import ScreenSaver
 import WebKit
 
-class SpaceInvadersScreensaverView: ScreenSaverView {
+final class SpaceInvadersScreensaver: ScreenSaverView {
+
     private var webView: WKWebView!
-    
+
     override init?(frame: NSRect, isPreview: Bool) {
         super.init(frame: frame, isPreview: isPreview)
-        
+
         let config = WKWebViewConfiguration()
-        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
-        
-        webView = WKWebView(frame: bounds, configuration: config)
+        webView = WKWebView(frame: self.bounds, configuration: config)
         webView.autoresizingMask = [.width, .height]
-        
         addSubview(webView)
-        
+
         // Cargar el HTML local
-        if let bundle = Bundle(for: type(of: self)),
-           let htmlPath = bundle.path(forResource: "index", ofType: "html") {
+        let bundle = Bundle(for: type(of: self))
+        if let htmlPath = bundle.path(forResource: "index", ofType: "html") {
             let htmlURL = URL(fileURLWithPath: htmlPath)
+            // Permitir que cargue recursos relativos (main.js, assets, etc.)
             webView.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
+        } else {
+            NSLog("SpaceInvadersScreensaver: No se encontró index.html en el bundle")
         }
+
+        animationTimeInterval = 1.0 / 30.0
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
     }
-    
-    override func draw(_ rect: NSRect) {
-        NSColor.black.setFill()
-        rect.fill()
-    }
-    
+
     override func animateOneFrame() {
-        // WebView se anima solo
-    }
-    
-    override var hasConfigureSheet: Bool {
-        return false
+        // No hace falta render manual: el JS anima en el WebView.
     }
 }
