@@ -1,44 +1,30 @@
-      - name: Build universal binary
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          cd SpaceInvadersScreensaver_Packagename: Build macOS Screensaver
+name: Build macOS Screensaver
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ "main" ]
 
 jobs:
   build:
     runs-on: macos-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Show repo structure (debug)
-        shell: bash
-        run: |
-          set -euo pipefail
-          echo "== root =="
-          ls -la
-          echo "== SpaceInvadersScreensaver_Package =="
-          ls -la SpaceInvadersScreensaver_Package || true
-          echo "== saver bundle =="
-          ls -la SpaceInvadersScreensaver_Package/SpaceInvadersScreensaver.saver || true
-
-      - name: Build universal binary into .saver bundle
+      - name: Build (universal) into .saver bundle
         shell: bash
         run: |
           set -euo pipefail
 
+          # Entramos a la carpeta real del proyecto
           cd SpaceInvadersScreensaver_Package
 
-          # Validaciones rápidas
+          # Validaciones (si falla acá, te dice exactamente qué falta)
           test -f SpaceInvadersScreensaver.swift
           test -d SpaceInvadersScreensaver.saver
 
-          # Asegurar carpeta del binario dentro del bundle
+          # Asegurar la carpeta del binario dentro del bundle
           mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
 
           # Compilar universal (Intel + Apple Silicon)
@@ -54,10 +40,6 @@ jobs:
 
           echo "✅ Built binary:"
           file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
-
-          echo "✅ Bundle contents:"
-          ls -la SpaceInvadersScreensaver.saver/Contents
-          ls -la SpaceInvadersScreensaver.saver/Contents/MacOS
 
       - name: Upload artifact (.saver)
         uses: actions/upload-artifact@v4
