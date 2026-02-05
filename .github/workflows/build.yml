@@ -1,34 +1,21 @@
-name: Build macOS Screensaver
-
-on:
-  workflow_dispatch:
-  push:
-    branches: ["main"]
-
-jobs:
-  build:
-    runs-on: macos-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
       - name: Build .saver bundle
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "== Repo root =="
-          ls -la
-
-          # Validar archivo fuente
           test -f SpaceInvadersScreensaver.swift
 
-          # Crear estructura del bundle
           mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
           mkdir -p SpaceInvadersScreensaver.saver/Contents/Resources
 
-          # Crear Info.plist mínimo
+          # Copiar recursos si existen (index.html, js, css, etc.)
+          if [[ -f index.html ]]; then
+            cp -v index.html SpaceInvadersScreensaver.saver/Contents/Resources/
+          fi
+          if [[ -d Resources ]]; then
+            cp -Rv Resources/* SpaceInvadersScreensaver.saver/Contents/Resources/ || true
+          fi
+
           cat > SpaceInvadersScreensaver.saver/Contents/Info.plist << 'EOF'
           <?xml version="1.0" encoding="UTF-8"?>
           <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -50,7 +37,6 @@ jobs:
           </plist>
           EOF
 
-          # Compilar universal (Intel + Apple Silicon)
           swiftc \
             -target x86_64-apple-macosx13.0 \
             -target arm64-apple-macosx13.0 \
@@ -61,17 +47,4 @@ jobs:
             -o SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver \
             SpaceInvadersScreensaver.swift
 
-          echo "✅ Binary:"
-          file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
-
-          echo "✅ Bundle:"
-          find SpaceInvadersScreensaver.saver -maxdepth 3 -print
-
-          # Zip final
           zip -r SpaceInvadersScreensaver.saver.zip SpaceInvadersScreensaver.saver
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: SpaceInvadersScreensaver
-          path: SpaceInvadersScreensaver.saver.zip
