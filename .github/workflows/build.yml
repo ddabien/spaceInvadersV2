@@ -3,29 +3,52 @@ name: Build macOS Screensaver
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build (universal) into .saver bundle
+      - name: Build .saver bundle
         shell: bash
         run: |
           set -euo pipefail
 
-          # Entramos a la carpeta real del proyecto
-          cd SpaceInvadersScreensaver_Package
+          echo "== Repo root =="
+          ls -la
 
-          # Validaciones (si falla acá, te dice exactamente qué falta)
+          # Validar archivo fuente
           test -f SpaceInvadersScreensaver.swift
-          test -d SpaceInvadersScreensaver.saver
 
-          # Asegurar la carpeta del binario dentro del bundle
+          # Crear estructura del bundle
           mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
+          mkdir -p SpaceInvadersScreensaver.saver/Contents/Resources
+
+          # Crear Info.plist mínimo
+          cat > SpaceInvadersScreensaver.saver/Contents/Info.plist << 'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleIdentifier</key>
+              <string>com.example.spaceinvaders</string>
+              <key>CFBundleName</key>
+              <string>Space Invaders</string>
+              <key>CFBundlePackageType</key>
+              <string>BNDL</string>
+              <key>CFBundleVersion</key>
+              <string>1.0</string>
+              <key>CFBundleShortVersionString</key>
+              <string>1.0</string>
+              <key>NSPrincipalClass</key>
+              <string>SpaceInvadersScreensaver</string>
+          </dict>
+          </plist>
+          EOF
 
           # Compilar universal (Intel + Apple Silicon)
           swiftc \
@@ -38,11 +61,17 @@ jobs:
             -o SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver \
             SpaceInvadersScreensaver.swift
 
-          echo "✅ Built binary:"
+          echo "✅ Binary:"
           file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
 
-      - name: Upload artifact (.saver)
+          echo "✅ Bundle:"
+          find SpaceInvadersScreensaver.saver -maxdepth 3 -print
+
+          # Zip final
+          zip -r SpaceInvadersScreensaver.saver.zip SpaceInvadersScreensaver.saver
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: SpaceInvadersScreensaver
-          path: SpaceInvadersScreensaver_Package/SpaceInvadersScreensaver.saver
+          path: SpaceInvadersScreensaver.saver.zip
