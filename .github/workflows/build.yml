@@ -28,12 +28,15 @@ jobs:
           mkdir -p SpaceInvadersScreensaver.saver/Contents/MacOS
           mkdir -p SpaceInvadersScreensaver.saver/Contents/Resources
 
-          # Copiar recursos si existen (index.html, js, css, etc.)
+          # Copiar recursos web (si existen)
           if [[ -f index.html ]]; then
             cp -v index.html SpaceInvadersScreensaver.saver/Contents/Resources/
           fi
-          if [[ -d Resources ]]; then
-            cp -Rv Resources/* SpaceInvadersScreensaver.saver/Contents/Resources/ || true
+          if [[ -f main.js ]]; then
+            cp -v main.js SpaceInvadersScreensaver.saver/Contents/Resources/
+          fi
+          if [[ -d assets ]]; then
+            cp -Rv assets SpaceInvadersScreensaver.saver/Contents/Resources/
           fi
 
           # Info.plist mínimo
@@ -72,10 +75,10 @@ jobs:
           echo "✅ Built binary:"
           file SpaceInvadersScreensaver.saver/Contents/MacOS/SpaceInvadersScreensaver
 
-          echo "✅ Bundle tree:"
-          find SpaceInvadersScreensaver.saver -maxdepth 4 -print
+          echo "✅ Resources:"
+          ls -la SpaceInvadersScreensaver.saver/Contents/Resources || true
 
-          # Zip final para descargar
+          # Zip final
           rm -f SpaceInvadersScreensaver.saver.zip
           zip -r SpaceInvadersScreensaver.saver.zip SpaceInvadersScreensaver.saver
 
